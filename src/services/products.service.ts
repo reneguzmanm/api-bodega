@@ -1,3 +1,6 @@
+import { prisma } from "../lib/prisma";
+
+
 interface Product{
     id: number,
     name: string,
@@ -10,59 +13,80 @@ type CreateProduct = {
     stock: number;
 };
 
+export type CreateProductInput = {
+    sku: string;
+    name: string;
+};
+
+export type UpdateProductInput = {
+    sku: string;
+    name: string;
+};
+
+
 const products: Product[] = [
     {id: 1, name: 'Box', stock:30},
     {id: 2, name: 'Label', stock:120},
     
 ]
 
-export const getAllProducts = (): Product[] =>{
-    return products;
+export const getAllProducts = async () => {
+    return prisma.product.findMany({
+        where: {
+            isActive: true
+        },
+        orderBy: {
+            id: 'asc'
+        }
+    });
 };
 
-export const getProductById = (id: number): Product | undefined =>{
-    return products.find(product => product.id === id);
-}
+export const getProductById = async (id: number) => {
+    return prisma.product.findUnique({
+        where: {
+            id,
+            isActive: true
+        }
+    });
+};
 
-export const createProduct = (
-    productData: CreateProduct
-): Product =>{
+export const createProduct = async (
+    productData: CreateProductInput
+) =>{
     
-    const newId = products.length > 0 ? Math.max(...products.map(product => product.id)) + 1 : 1;
-
-    const newProduct: Product = {
-        id: newId,
-        ...productData
-    };
-
-    products.push(newProduct);
-
-    return newProduct;
+    return prisma.product.create({
+        data:{
+            sku: productData.sku,
+            name: productData.name,
+        }
+    });
 
 }
 
-export const updateProduct = (
+export const updateProduct = async (
     id: number,
-    productData: CreateProduct
-): Product | undefined =>{
-    const product = products.find(product => product.id === id);
-
-    if(!product) return undefined;
-
-    product.name = productData.name;
-    product.stock = productData.stock;
-
-    return product;
+    productData: UpdateProductInput
+) =>{
+    return prisma.product.update({
+        where: { id },
+        data:{
+            sku: productData.sku,
+            name: productData.name,
+        }
+    })
 }
 
-export const deleteProduct = (id: Number) : boolean =>{
-    const index = products.findIndex(product => product.id === id);
 
-    if(index === -1){
-        return false;
-    }
+export const deactivateProduct = async (id: number): Promise<boolean> => {
+    const result = await prisma.product.updateMany({
+        where: {
+            id,
+            isActive: true
+        },
+        data: {
+            isActive: false
+        }
+    });
 
-    products.slice(index, 1);
-
-    return true;
-}
+    return result.count > 0;
+};

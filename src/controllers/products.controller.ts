@@ -1,126 +1,203 @@
-import { Request, Response} from 'express';
-import { createProduct, deleteProduct, getAllProducts, getProductById, updateProduct } from '../services/products.service'
+import { NextFunction, Request, Response} from 'express';
+import { createProduct, deactivateProduct, getAllProducts, getProductById, updateProduct } from '../services/products.service'
+import { Prisma } from '../generated/prisma/client';
 
-export const listProducts = (
-    req: Request,
-    res: Response
-): void =>{
-    const products = getAllProducts();
-
-    res.status(200).json(products);
-}
-
-export const listProduct = (
+export const listProducts = async (
     req: Request,
     res: Response,
-): void =>{
-    const id = Number(req.params.id);
-    if(!Number.isInteger(id)|| id <= 0){
-        res.status(400).json({
-            message: 'Inavlid product ID'
-        })
+    next: NextFunction,
+): Promise<void> =>{
+    try {
+        const products = await getAllProducts();
+        res.status(200).json(products);
+    } catch (error) {
+        next(error);
     }
-
-    const product = getProductById(id);
-
-    if(!product){
-        res.status(404).json({
-            message: 'Product not found'
-        });
-        return;
-    }
-    res.status(200).json(product)
 }
 
-export const addProduct = (
-    req: Request,
-    res: Response
-): void =>{
-    const {name, stock} = req.body;
 
-    if(typeof name !== 'string' || name. trim() === ''){
-        res.status(400).json({
-            message: 'Invalid product name'
-        })
-        return;
-    }
-
-    if(!Number.isInteger(stock) || stock < 0){
-        res.status(400).json({
-            message: 'Invalid product stock'
-        })
-        return;
-    }
-
-    const newProduct = createProduct({
-        name: name.trim(),
-        stock
-    });
-    res.status(201).json(newProduct)
-
-}
-
-export const editProduct = (
-    req: Request,
-    res: Response
-): void =>{
-    const id = Number(req.params.id);
-    if(!Number.isSafeInteger(id) || id <= 0){
-        res.status(400).json({
-            message: 'Invalid product ID'
-        })
-        return;
-    }
-    const { name, stock} = req.body ?? {};
-
-    if(typeof name !== 'string' || name. trim() === ''){
-        res.status(400).json({
-            message: 'Invalid product name'
-        })
-        return;
-    }
-
-    if(!Number.isInteger(stock) || stock < 0){
-        res.status(400).json({
-            message: 'Invalid product stock'
-        })
-        return;
-    }
-
-    const updatedProduct = updateProduct(id,{
-        name: name.trim(),
-        stock,
-    })
-
-    if(!updatedProduct){
-        res.status(404).json({
-            message:'Product not found'
-        });
-        return;
-    }
-
-    res.status(200).json(updatedProduct);
-}
-
-export const removeProduct = (
+export const listProduct = async (
     req: Request,
     res: Response,
-): void =>{
-    const id = Number(req.params.id);
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const id = Number(req.params.id);
 
-    if(!Number.isSafeInteger(id) || id <= 0){
-        res.status(400).json({
-            message: 'Invalid product ID'
-        })
-        return;
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            res.status(400).json({
+                message: 'Invalid product ID'
+            });
+            return;
+        }
+
+        const product = await getProductById(id);
+
+        if (!product) {
+            res.status(404).json({
+                message: 'Product not found'
+            });
+            return;
+        }
+
+        res.status(200).json(product);
+
+    } catch (error) {
+        next(error);
     }
+};
 
-    const deleted = deleteProduct(id);
 
-    if(!deleted){
-        res.status(404).json({message:'Product not found'});
-        return;
 
+export const addProduct = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const { sku, name } = req.body ?? {};
+
+        if (
+            typeof sku !== 'string' ||
+            !sku.trim() ||
+            sku.trim().length > 50
+        ) {
+            res.status(400).json({
+                message: 'Invalid product SKU'
+            });
+            return;
+        }
+
+        if (
+            typeof name !== 'string' ||
+            !name.trim() ||
+            name.trim().length > 120
+        ) {
+            res.status(400).json({
+                message: 'Invalid product name'
+            });
+            return;
+        }
+
+        const newProduct = await createProduct({
+            sku: sku.trim(),
+            name: name.trim()
+        });
+
+        res.status(201).json(newProduct);
+
+    } catch (error) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2002'
+        ) {
+            res.status(409).json({
+                message: 'Product SKU already exists'
+            });
+            return;
+        }
+
+        next(error);
     }
-    res.status(204).send()
-}
+};
+
+
+
+export const editProduct = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const id = Number(req.params.id);
+        const { sku, name } = req.body ?? {};
+
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            res.status(400).json({
+                message: 'Invalid product ID'
+            });
+            return;
+        }
+
+        if (
+            typeof sku !== 'string' ||
+            !sku.trim() ||
+            sku.trim().length > 50
+        ) {
+            res.status(400).json({
+                message: 'Invalid product SKU'
+            });
+            return;
+        }
+
+        if (
+            typeof name !== 'string' ||
+            !name.trim() ||
+            name.trim().length > 120
+        ) {
+            res.status(400).json({
+                message: 'Invalid product name'
+            });
+            return;
+        }
+
+        const updatedProduct = await updateProduct(id, {
+            sku: sku.trim(),
+            name: name.trim()
+        });
+
+        res.status(200).json(updatedProduct);
+
+    } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2025') {
+                res.status(404).json({
+                    message: 'Product not found'
+                });
+                return;
+            }
+
+            if (error.code === 'P2002') {
+                res.status(409).json({
+                    message: 'Product SKU already exists'
+                });
+                return;
+            }
+        }
+
+        next(error);
+    }
+};
+
+
+
+export const removeProduct = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const id = Number(req.params.id);
+
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            res.status(400).json({
+                message: 'Invalid product ID'
+            });
+            return;
+        }
+
+        const deactivated = await deactivateProduct(id);
+
+        if (!deactivated) {
+            res.status(404).json({
+                message: 'Product not found'
+            });
+            return;
+        }
+
+        res.status(204).send();
+
+    } catch (error) {
+        next(error);
+    }
+};
