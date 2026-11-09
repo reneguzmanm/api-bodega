@@ -1,128 +1,123 @@
 # Warehouse Management API
 
-A RESTful API for warehouse inventory management, built with **Node.js, Express, and TypeScript**.
+A RESTful API for warehouse inventory management, built with **Node.js, Express, TypeScript, Prisma ORM, and PostgreSQL**.
 
-This project focuses on backend development, REST API design, separation of concerns, data validation, and database integration.
+This project focuses on backend development, REST API design, separation of concerns, relational database modeling, data validation, error handling, and automated testing.
+
+The application is being developed incrementally, following a layered architecture and Git version control practices.
 
 ## Tech Stack
 
 - **Node.js** — JavaScript runtime
-- **Express.js** — HTTP server framework
+- **Express.js** — REST API framework
 - **TypeScript** — Static typing
-- **PostgreSQL** — Planned database integration
+- **PostgreSQL** — Relational database
+- **Prisma ORM** — Database access, schema management, and migrations
+- **Docker Compose** — Local PostgreSQL environment
+- **Git and GitHub** — Version control
+- **Jest** — Unit testing (in progress)
+- **GitHub Actions** — Continuous integration (in progress)
 
 ## Features
 
-- Create products
-- Retrieve all products
-- Retrieve a product by ID
-- Update existing products
-- Delete products
-- Validate incoming requests
-- Handle HTTP status codes
+### Implemented
 
-**Current status:** Product data is stored in memory. Database persistence has not been implemented yet.
+- Create products with unique SKUs
+- Retrieve active products
+- Retrieve products by ID
+- Update product information
+- Soft-delete products using `isActive`
+- Validate incoming requests
+- Handle database uniqueness conflicts
+- Return appropriate HTTP status codes
+- Persist data in PostgreSQL
+- Manage the database schema with Prisma migrations
+- Automatically manage creation and modification timestamps
+
+### Planned
+
+- Manage physical warehouse locations
+- Track product quantities by location
+- Record inventory entries, exits, and adjustments
+- Track users responsible for inventory movements
+- Manage stock updates using database transactions
+- Implement authentication and authorization
+- Add automated unit and integration tests
+- Implement continuous integration and automated deployment
+
+## Architecture
+
+The API follows a layered architecture:
+
+**Routes → Controllers → Services → Prisma ORM → PostgreSQL**
+
+Each layer has a specific responsibility:
+
+- **Routes:** Define HTTP endpoints.
+- **Controllers:** Handle requests, validation, and HTTP responses.
+- **Services:** Implement business logic and database operations.
+- **Prisma ORM:** Provides type-safe access to PostgreSQL.
+- **PostgreSQL:** Stores application data.
 
 ## Project Structure
 
 ```text
-src/
-├── controllers/
-│   └── products.controller.ts
-├── routes/
-│   └── products.routes.ts
-├── services/
-│   └── products.service.ts
-├── app.ts
-└── server.ts
+api-bodega/
+├── .github/
+│   └── workflows/              # CI workflows (in progress)
+├── prisma/
+│   ├── migrations/
+│   └── schema.prisma
+├── src/
+│   ├── controllers/
+│   │   └── products.controller.ts
+│   ├── generated/
+│   │   └── prisma/             # Generated Prisma Client
+│   ├── lib/
+│   │   └── prisma.ts
+│   ├── routes/
+│   │   └── products.routes.ts
+│   ├── services/
+│   │   └── products.service.ts
+│   ├── app.ts
+│   └── server.ts
+├── tests/                       # Automated tests (in progress)
+├── compose.yaml
+├── prisma.config.ts
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
-## Getting Started
+The directory structure will expand as inventory management features are implemented.
 
-### Prerequisites
+## Database Design
 
-- Node.js
-- npm
+The application uses **PostgreSQL** with **Prisma ORM**.
 
-### Installation
+The database schema defines five main models:
 
-Clone the repository:
+| Model | Responsibility |
+|---|---|
+| Product | Product catalog and soft deletion |
+| Location | Physical storage locations |
+| Inventory | Product quantities per location |
+| InventoryMovement | Historical inventory operations |
+| User | Users responsible for inventory movements |
 
-```bash
-git clone https://github.com/YOUR_USERNAME/api-bodega.git
-cd api-bodega
-```
+The database currently represents a single warehouse with support for multiple internal storage locations.
 
-Install dependencies:
+Although these models are defined in Prisma, the inventory and location management APIs are still under development.
 
-```bash
-npm install
-```
+### Product Model
 
-Start the development server:
+Products contain:
 
-```bash
-npm run dev
-```
+- `id`: Unique product identifier
+- `sku`: Unique stock keeping unit
+- `name`: Product name
+- `isActive`: Product activation status
+- `createdAt`: Creation timestamp
+- `updatedAt`: Last modification timestamp
 
-The API will be available at:
-
-`http://localhost:3000`
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/products` | Get all products |
-| GET | `/products/:id` | Get a product by ID |
-| POST | `/products` | Create a product |
-| PUT | `/products/:id` | Update a product |
-| DELETE | `/products/:id` | Delete a product |
-
-### Example: Create a Product
-
-**POST** `/products`
-
-Request body:
-
-```json
-{
-  "name": "Pallet",
-  "stock": 50
-}
-```
-
-Successful response (`201 Created`):
-
-```json
-{
-  "id": 3,
-  "name": "Pallet",
-  "stock": 50
-}
-```
-
-## HTTP Status Codes
-
-- `200 OK` — Successful retrieval or update
-- `201 Created` — Product created
-- `204 No Content` — Product deleted
-- `400 Bad Request` — Invalid request data
-- `404 Not Found` — Product not found
-
-## Roadmap
-
-- [x] Product CRUD operations
-- [x] Routes, controllers, and services
-- [x] Basic request validation
-- [ ] PostgreSQL integration
-- [ ] Database migrations
-- [ ] Inventory movements
-- [ ] Warehouse locations
-- [ ] Automated tests
-- [ ] Docker configuration
-- [ ] API documentation with Swagger
-
-## License
-
-No license has been assigned to this project yet.
+Product stock is not stored directly in the `Product` model. Inventory
