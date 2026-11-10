@@ -26,15 +26,20 @@ model Product {
 
 model Location {
   id          Int     @id @default(autoincrement())
-  code        String  @unique @db.VarChar(30)
+  zone        String  @db.VarChar(1)
+  aisle       Int
+  rack        Int
+  level       Int
+  position    Int
   description String? @db.VarChar(255)
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(3)
 
   inventories Inventory[]
   movements   InventoryMovement[]
 
+  @@unique([zone, aisle, rack, level, position])
   @@map("locations")
 }
 
