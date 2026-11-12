@@ -139,15 +139,12 @@ describe('Inventory Transaction Integration', () => {
             throw new Error('Integration tests require bodega_test_db');
         }
 
-        const actor = await prisma.user.findFirst({
-            select: {
-                id: true,
+        const actor = await prisma.user.create({
+            data: {
+                name: 'Concurrent Test Actor',
+                email: `concurrent-${randomUUID()}@example.invalid`,
             },
         });
-
-        if (!actor) {
-            throw new Error('A test user must exist in bodega_test_db');
-        }
 
         const product = await prisma.product.create({
             data: {
@@ -259,6 +256,14 @@ describe('Inventory Transaction Integration', () => {
                     id: product.id,
                 },
             });
+
+
+            await prisma.user.delete({
+                where: {
+                    id: actor.id,
+                },
+            });
+
         }
     });
 
